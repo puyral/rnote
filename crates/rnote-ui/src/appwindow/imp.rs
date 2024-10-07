@@ -24,6 +24,7 @@ pub(crate) struct RnAppWindow {
     pub(crate) autosave_interval_secs: Cell<u32>,
     pub(crate) righthanded: Cell<bool>,
     pub(crate) block_pinch_zoom: Cell<bool>,
+    pub(crate) block_touch: Cell<bool>,
     pub(crate) respect_borders: Cell<bool>,
     pub(crate) touch_drawing: Cell<bool>,
     pub(crate) focus_mode: Cell<bool>,
@@ -136,6 +137,9 @@ impl ObjectImpl for RnAppWindow {
                 glib::ParamSpecBoolean::builder("block-pinch-zoom")
                     .default_value(false)
                     .build(),
+                glib::ParamSpecBoolean::builder("block-touch")
+                    .default_value(false)
+                    .build(),
                 glib::ParamSpecBoolean::builder("touch-drawing")
                     .default_value(false)
                     .build(),
@@ -157,6 +161,7 @@ impl ObjectImpl for RnAppWindow {
             "autosave-interval-secs" => self.autosave_interval_secs.get().to_value(),
             "righthanded" => self.righthanded.get().to_value(),
             "block-pinch-zoom" => self.block_pinch_zoom.get().to_value(),
+            "block-touch" => self.block_touch.get().to_value(),
             "respect-borders" => self.respect_borders.get().to_value(),
             "touch-drawing" => self.touch_drawing.get().to_value(),
             "focus-mode" => self.focus_mode.get().to_value(),
@@ -210,6 +215,11 @@ impl ObjectImpl for RnAppWindow {
                 let block_pinch_zoom: bool =
                     value.get().expect("The value needs to be of type `bool`");
                 self.block_pinch_zoom.replace(block_pinch_zoom);
+            }
+            "block-touch" => {
+                let block_touch: bool =
+                    value.get().expect("The value needs to be of type `bool`");
+                self.block_touch.replace(block_touch);
             }
             "respect-borders" => {
                 let respect_borders: bool =
