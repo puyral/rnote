@@ -311,9 +311,13 @@ mod imp {
 
         fn canvas_touch_pan_update(&self) {
             if !self.block_touch.get() && !self.canvas.touch_drawing() {
-                self.canvas_drag_gesture.set_propagation_phase(PropagationPhase::Capture);
+                self.canvas_drag_gesture.set_propagation_phase(PropagationPhase::Bubble);
+                self.touch_two_finger_long_press_gesture.set_propagation_phase(PropagationPhase::Capture);
+                self.touch_long_press_gesture.set_propagation_phase(PropagationPhase::Capture);
             } else {
                 self.canvas_drag_gesture.set_propagation_phase(PropagationPhase::None);
+                self.touch_two_finger_long_press_gesture.set_propagation_phase(PropagationPhase::None);
+                self.touch_long_press_gesture.set_propagation_phase(PropagationPhase::None);
             }
         }
 
@@ -771,7 +775,6 @@ mod imp {
                     #[weak(rename_to=canvaswrapper)]
                     obj,
                     move |_gesture, x, y| {
-                        if canvaswrapper.block_touch() {return ();}
                         let popover = canvaswrapper.contextmenu().popover();
                         canvaswrapper
                             .imp()
