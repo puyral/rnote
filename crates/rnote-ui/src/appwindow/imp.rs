@@ -55,6 +55,7 @@ impl Default for RnAppWindow {
             autosave_interval_secs: Cell::new(super::RnAppWindow::AUTOSAVE_INTERVAL_DEFAULT),
             righthanded: Cell::new(true),
             block_pinch_zoom: Cell::new(false),
+            block_touch: Cell::new(false),
             respect_borders: Cell::new(false),
             touch_drawing: Cell::new(false),
             focus_mode: Cell::new(false),
