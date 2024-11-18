@@ -534,7 +534,7 @@ mod imp {
                         bbcenter_begin.set(
                             gesture
                                 .bounding_box_center()
-                                .map(|coords| na::vector![coords.0, coords.1]),
+                                .map(|(x, y)| na::vector![x, y]),
                         );
                         offset_begin.set(canvaswrapper.canvas().engine_ref().camera.offset());
                     }
@@ -567,7 +567,7 @@ mod imp {
 
                         if let Some(bbcenter_current) = gesture
                             .bounding_box_center()
-                            .map(|coords| na::vector![coords.0, coords.1])
+                            .map(|(x, y)| na::vector![x, y])
                         {
                             let bbcenter_begin = if let Some(bbcenter_begin) = bbcenter_begin.get()
                             {
