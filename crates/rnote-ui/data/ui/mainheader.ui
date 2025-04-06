@@ -63,7 +63,7 @@
                 </child>
                 <child>
                   <object class="GtkToggleButton">
-                    <property name="icon-name">no-touch-symbolic</property>
+                    <property name="icon-name">touch-disabled-symbolic</property>
                     <property name="action-name">win.block-touch</property>
                     <property name="tooltip-text" translatable="yes">Block Touch</property>
                   </object>
