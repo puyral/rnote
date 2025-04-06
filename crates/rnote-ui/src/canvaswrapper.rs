@@ -293,6 +293,7 @@ mod imp {
                     self.block_touch.replace(block_touch);
                     self.canvas_touch_pan_update();
                     self.canvas_zoom_gesture_update();
+                    self.canvas_kinetic_scrolling_update();
                 }
                 "inertial-scrolling" => {
                     let inertial_scrolling = value
@@ -325,7 +326,7 @@ mod imp {
                 self.canvas_drag_gesture.set_propagation_phase(PropagationPhase::Bubble);
                 self.touch_two_finger_long_press_gesture.set_propagation_phase(PropagationPhase::Capture);
                 self.touch_long_press_gesture.set_propagation_phase(PropagationPhase::Capture);
-            } else {
+            } else { // set everythinbg to `None`
                 self.canvas_drag_gesture.set_propagation_phase(PropagationPhase::None);
                 self.touch_two_finger_long_press_gesture.set_propagation_phase(PropagationPhase::None);
                 self.touch_long_press_gesture.set_propagation_phase(PropagationPhase::None);
@@ -334,7 +335,7 @@ mod imp {
 
         fn canvas_kinetic_scrolling_update(&self) {
             self.scroller.set_kinetic_scrolling(
-                !self.canvas.touch_drawing() && self.inertial_scrolling.get(),
+                !self.block_touch.get() && !self.canvas.touch_drawing() && self.inertial_scrolling.get(),
             );
         }
 
