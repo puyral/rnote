@@ -31,13 +31,12 @@ prerequisites:
     if [[ ('{{linux_distr}}' =~ 'fedora') ]]; then
         {{sudo_cmd}} dnf install -y \
             gcc gcc-c++ clang clang-devel python3 make cmake meson just git appstream gettext desktop-file-utils \
-            shared-mime-info kernel-devel gtk4-devel libadwaita-devel poppler-glib-devel poppler-data alsa-lib-devel \
-            appstream-devel
+            shared-mime-info kernel-devel gtk4-devel libadwaita-devel alsa-lib-devel appstream-devel
     elif [[ '{{linux_distr}}' =~ 'debian' || '{{linux_distr}}' =~ 'ubuntu' ]]; then
         {{sudo_cmd}} apt-get update
         {{sudo_cmd}} apt-get install -y \
             build-essential clang libclang-dev python3 make cmake meson just git appstream gettext desktop-file-utils \
-            shared-mime-info libgtk-4-dev libadwaita-1-dev libpoppler-glib-dev libasound2-dev libappstream-dev
+            shared-mime-info libgtk-4-dev libadwaita-1-dev libasound2-dev libappstream-dev
     else
         echo "Unable to install system dependencies, unsupported distro."
         exit 1
@@ -59,9 +58,8 @@ prerequisites-flatpak: prerequisites
         echo "Unable to install system dependencies, unsupported distro."
         exit 1
     fi
-    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-    flatpak install -y org.gnome.Platform//48 org.gnome.Sdk//48 org.freedesktop.Sdk.Extension.rust-stable//24.08 \
-        org.freedesktop.Sdk.Extension.llvm19//24.08
+    flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    flatpak install --user -y org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.rust-stable//25.08
 
 prerequisites-dev: prerequisites
     #!/usr/bin/env bash
@@ -78,7 +76,7 @@ prerequisites-dev: prerequisites
         exit 1
     fi
     if [[ "{{ci}}" != "true" ]]; then
-        ln -sf build-aux/git-hooks/pre-commit.hook .git/hooks/pre-commit
+        ln -sf ../../build-aux/git-hooks/pre-commit.hook .git/hooks/pre-commit
     fi
     curl -L --proto '=https' --tlsv1.2 -sSf \
         https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
@@ -90,9 +88,45 @@ prerequisites-win:
         unzip git mingw-w64-x86_64-xz mingw-w64-x86_64-pkgconf mingw-w64-x86_64-gcc mingw-w64-x86_64-clang \
         mingw-w64-x86_64-toolchain mingw-w64-x86_64-autotools mingw-w64-x86_64-make mingw-w64-x86_64-cmake \
         mingw-w64-x86_64-meson mingw-w64-x86_64-diffutils mingw-w64-x86_64-desktop-file-utils \
-        mingw-w64-x86_64-appstream mingw-w64-x86_64-gtk4 mingw-w64-x86_64-libadwaita mingw-w64-x86_64-poppler \
-        mingw-w64-x86_64-poppler-data mingw-w64-x86_64-angleproject
+        mingw-w64-x86_64-appstream mingw-w64-x86_64-gtk4 mingw-w64-x86_64-libadwaita mingw-w64-x86_64-angleproject
     mv /mingw64/lib/libpthread.dll.a /mingw64/lib/libpthread.dll.a.bak
+    # We need to pin version : cairo before dwrite, gtk before dcomp
+    # cairo : before 
+    # https://github.com/msys2/MINGW-packages/commit/305ebda98c3041d9986d6fae498b45d2b2b9f4e8
+    # Because the Dwrite win32 backend can't be used for text in multithreaded
+    # context (see issue #1536 and upstream issues 
+    # on mingw : https://github.com/msys2/MINGW-packages/issues/26222#issuecomment-3506563048
+    # and on cairo's gitlab : https://gitlab.freedesktop.org/cairo/cairo/-/issues/886 
+    # 
+    # And because this also means that cairo will depend on the DLLmain
+    # symbol being exported from gettext (removed in 
+    # https://github.com/msys2/MINGW-packages/commit/3756eb5ceba81861751d26161a2ae6d980f715d3
+    # with follow-up in 
+    # https://github.com/msys2/MINGW-packages/commit/83eed715521d7d7c292d34fb80c29a720b534769#diff-a1d3a07941f44098abaaeef3440e303f11280e2165ff7e805fd50c7c38e8af13)
+    # 
+    # So
+    # - we download the gettext runtime WITH the DLLmain symbol
+    # - we install cairo/gtk4 with the pinned version. It will depend on DLLmain being 
+    #   present pulling from the (now installed) version that includes i
+    # - the rest (hopefully) will still work (if not, need to pin all dependencies in 
+    # https://github.com/msys2/MINGW-packages/commit/83eed715521d7d7c292d34fb80c29a720b534769#diff-a1d3a07941f44098abaaeef3440e303f11280e2165ff7e805fd50c7c38e8af13
+    # that we also use : which is a pretty long list !)
+    # 
+    # 1 : Get gettext before DLLmain removal
+    wget -q https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-gettext-libtextstyle-0.26-1-any.pkg.tar.zst
+    wget -q https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-gettext-runtime-0.26-1-any.pkg.tar.zst
+    wget -q https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-gettext-tools-0.26-1-any.pkg.tar.zst
+    pacman -U --noconfirm mingw-w64-x86_64-gettext-libtextstyle-0.26-1-any.pkg.tar.zst \
+        mingw-w64-x86_64-gettext-runtime-0.26-1-any.pkg.tar.zst \
+        mingw-w64-x86_64-gettext-tools-0.26-1-any.pkg.tar.zst
+    # 2 : Get cairo and gtk4 pinned version
+    # Also use a libadwaita version matching the gtk4 one
+    wget -q https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-cairo-1.18.4-1-any.pkg.tar.zst
+    wget -q https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-gtk4-4.18.6-3-any.pkg.tar.zst
+    wget -q https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-libadwaita-1.7.7-1-any.pkg.tar.zst
+    pacman -U --noconfirm mingw-w64-x86_64-cairo-1.18.4-1-any.pkg.tar.zst \
+        mingw-w64-x86_64-gtk4-4.18.6-3-any.pkg.tar.zst \
+        mingw-w64-x86_64-libadwaita-1.7.7-1-any.pkg.tar.zst
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
     export PATH="$HOME/.cargo/bin:$PATH"
 
@@ -176,11 +210,11 @@ install:
 install-flatpak:
     flatpak-builder --user --install {{ flatpak_app_folder }} build-aux/com.github.flxzt.rnote.Devel.yaml
 
-run-ui:
-    {{ build_folder }}/target/debug/rnote
+run-ui *ARGS:
+    {{ build_folder }}/target/debug/rnote {{ARGS}}
 
-run-cli:
-    {{ build_folder }}/target/debug/rnote-cli
+run-cli *ARGS:
+    {{ build_folder }}/target/debug/rnote-cli {{ARGS}}
 
 run-flatpak:
     flatpak-builder --run {{ flatpak_app_folder }} build-aux/com.github.flxzt.rnote.Devel.yaml rnote

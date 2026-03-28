@@ -1,7 +1,7 @@
 // Imports
 use crate::Drawable;
+use crate::Svg;
 use crate::document::Background;
-use crate::render::Svg;
 use crate::strokes::Stroke;
 use p2d::bounding_volume::{Aabb, BoundingVolume};
 use rnote_compose::shapes::Shapeable;
@@ -27,8 +27,8 @@ impl StrokeContent {
     pub const MIME_TYPE: &'static str = "application/rnote-stroke-content";
     pub const CLIPBOARD_EXPORT_MARGIN: f64 = 6.0;
 
-    pub fn with_bounds(mut self, bounds: Option<Aabb>) -> Self {
-        self.bounds = bounds;
+    pub fn with_bounds(mut self, bounds: Aabb) -> Self {
+        self.bounds = Some(bounds);
         self
     }
 
@@ -37,8 +37,8 @@ impl StrokeContent {
         self
     }
 
-    pub fn with_background(mut self, background: Option<Background>) -> Self {
-        self.background = background;
+    pub fn with_background(mut self, background: Background) -> Self {
+        self.background = Some(background);
         self
     }
 
@@ -119,15 +119,8 @@ impl StrokeContent {
         );
         cairo_cx.clip();
 
-        if draw_background {
-            if let Some(background) = &self.background {
-                background.draw_to_cairo(
-                    cairo_cx,
-                    bounds_loosened,
-                    draw_pattern,
-                    optimize_printing,
-                )?;
-            }
+        if draw_background && let Some(background) = &self.background {
+            background.draw_to_cairo(cairo_cx, bounds_loosened, draw_pattern, optimize_printing)?;
         }
 
         cairo_cx.restore()?;
